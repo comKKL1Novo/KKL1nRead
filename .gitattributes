@@ -6,11 +6,31 @@
 gradlew text eol=lf
 *.bat text eol=crlf
 
+# Shell scripts must be LF: a CRLF shebang fails on Unix with the opaque
+# message "/usr/bin/env: 'bash\r': No such file or directory".
+*.sh text eol=lf
+
+# Windows batch files stay CRLF; PowerShell accepts either, so keep it uniform.
+*.cmd text eol=crlf
+*.ps1 text eol=lf
+
 # Binary assets: never touch these.
 *.png binary
 *.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
 *.jar binary
 *.apk binary
 *.aab binary
 *.keystore binary
 *.jks binary
+*.zip binary
+*.ttf binary
+*.otf binary
+*.woff binary
+*.woff2 binary
+
+# Lock files carry no reviewable content.
+gradle.lockfile -diff

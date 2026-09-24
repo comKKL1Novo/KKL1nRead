@@ -43,10 +43,16 @@ android {
 
     testOptions {
         unitTests.all {
-            // Run tests in the Gradle process instead of forking a worker JVM.
-            // Forked test workers fail to launch in sandboxed shells that cannot
-            // create piped stdio; these are pure JVM logic tests, so isolation
-            // buys nothing.
+            // Never restart the test worker between classes.
+            //
+            // Note this does NOT move tests into the Gradle process: the test
+            // task always runs through a forked worker. In some restricted shells
+            // that worker cannot be launched at all and the task fails with
+            // `ClassNotFoundException: GradleWorkerMain`, which this setting does
+            // not fix. Use tools/run-tests.ps1 to bypass Gradle in that case.
+            //
+            // These are pure JVM logic tests, so a fresh worker per class buys
+            // nothing anyway.
             it.setForkEvery(0)
         }
     }
