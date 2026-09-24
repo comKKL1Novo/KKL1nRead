@@ -1,0 +1,95 @@
+name: Build
+
+# 这个工程目前没有任何单元测试，所以 CI 至少守住一条底线：
+# 提交的代码必须能编译通过、能打出 APK。
+# 这样就不会出现「推上去才发现编译不过」的情况。
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  # 允许在 Actions 页面手动触发
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 配置 JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      # 缓存 Gradle 依赖与 wrapper，显著加快后续构建
+      - name: 配置 Gradle 缓存
+        uses: actions/setup-gradle@v4
+
+      # 两处本地属性必须在这里现生成，因为它们都不入库：
+      #
+      #   1. local.properties —— 含本机 SDK 绝对路径
+      #   2. org.gradle.java.home —— gradle.properties 里固定的是 Windows 上的
+      #      JetBrains Runtime 路径，在 Linux runner 上不存在，必须删掉，
+      #      否则 Gradle 会因为找不到那个 JDK 而直接失败。
+      #
+      # 用命令行 -D 覆盖是不够可靠的，直接改写文件最稳。
+      #
+      # ubuntu-latest 镜像预装了 Android SDK，但不同镜像版本里它可能叫
+      # ANDROID_SDK_ROOT 也可能叫 ANDROID_HOME，所以两个都探测一次，
+      # 都拿不到就直接失败并把环境变量打出来，而不是让 Gradle 报一句含糊的错。
+      - name: 生成本地构建配置
+        run: |
+          SDK="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}"
+          if [ -z "$SDK" ]; then
+            echo "::error::找不到 Android SDK。当前环境变量："
+            env | grep -i android || echo "(没有任何 ANDROID_* 变量)"
+            exit 1
+          fi
+          echo "使用 SDK: $SDK"
+          echo "sdk.dir=$SDK" > local.properties
+
+          sed -i '/^org\.gradle\.java\.home=/d' gradle.properties
+          if grep -q '^org\.gradle\.java\.home=' gradle.properties; then
+            echo "::error::org.gradle.java.home 未能删除，Gradle 会去找 Windows 上的 JDK"
+            exit 1
+          fi
+          echo "已移除 Windows 专属的 org.gradle.java.home"
+
+          echo "--- local.properties ---"
+          cat local.properties
+
+      - name: 构建 debug APK
+        run: ./gradlew assembleDebug --no-daemon --stacktrace
+
+      # 跑单元测试。CI 是全新容器，没有本机那种「无法 fork worker」的限制，
+      # 所以这里直接用标准的 Gradle 测试任务。
+      #
+      # 注意：本机受限环境下 gradlew test 会因 fork 失败而报
+      # ClassNotFoundException: GradleWorkerMain。那是环境问题，不是代码问题；
+      # 本机可以改用 tools/run-tests.ps1 绕过。
+      - name: 运行单元测试
+        run: ./gradlew testDebugUnitTest --no-daemon
+
+      # 测试报告即使失败也要上传，否则失败时看不到是哪个用例挂了
+      - name: 上传测试报告
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-report
+          path: app/build/reports/tests/testDebugUnitTest/
+          if-no-files-found: ignore
+
+      - name: 上传 APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug
+          path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error

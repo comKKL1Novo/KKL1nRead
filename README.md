@@ -156,6 +156,36 @@ adb install -r app\build\outputs\apk\debug\app-debug.apk
 .\gradlew.bat test
 ```
 
+当前有 **35 个单元测试**，覆盖两个最容易出静默错误的地方：
+
+| 测试类 | 数量 | 覆盖内容 |
+|---|---|---|
+| `ChapterSplitterTest` | 18 | 章节标题的各种写法、回退行为、切分完整性 |
+| `TextDecoderTest` | 17 | UTF-8 / GB18030 / BOM 判定、UTF-8 严格校验 |
+
+其中包含**两个回归测试**，对应下面「章节切分的两个坑」里提到的两处，
+把它们固定下来，避免以后改坏。
+
+#### 如果 `gradlew test` 跑不起来
+
+在某些受限环境下 Gradle 无法 fork 测试 worker 进程，会报：
+
+```
+ClassNotFoundException: worker.org.gradle.process.internal.worker.GradleWorkerMain
+```
+
+这是环境限制，不是代码问题——测试代码本身编译正常。这类测试是纯 JVM 逻辑测试，
+不需要 worker 隔离，可以用附带的脚本绕过 Gradle 直接跑：
+
+```powershell
+pwsh tools\run-tests.ps1
+```
+
+脚本会先编译测试代码，再从 Gradle 缓存里找到 JUnit 与 Kotlin 标准库，
+用 `JUnitCore` 直接执行，效果和 `gradlew test` 等价。
+
+**在 Android Studio 里用图形界面跑测试不受这个限制。**
+
 ---
 
 ## 工程结构
