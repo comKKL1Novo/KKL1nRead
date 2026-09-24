@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">KKL1nRead</string>
+
+    <string name="shelf_title">书架</string>
+    <string name="shelf_empty">书架是空的</string>
+    <string name="shelf_empty_hint">点右下角按钮，导入你自己的电子书</string>
+    <string name="shelf_import">导入</string>
+
+    <string name="action_delete">移除</string>
+    <string name="action_cancel">取消</string>
+
+    <string name="reader_toc">目录</string>
+    <string name="reader_settings">设置</string>
+    <string name="reader_back">返回</string>
+
+    <string name="settings_font_size">字号</string>
+    <string name="settings_line_height">行距</string>
+    <string name="settings_theme">主题</string>
+    <string name="settings_theme_light">浅色</string>
+    <string name="settings_theme_dark">深色</string>
+    <string name="settings_theme_sepia">护眼</string>
+
+    <string name="import_failed">导入失败：%1$s</string>
+    <string name="file_open_failed">无法读取该文件</string>
+</resources>
