@@ -1,0 +1,115 @@
+plugins {
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.ksp)
+}
+
+android {
+    namespace = "com.kkl1n.read"
+    compileSdk = 36
+
+    defaultConfig {
+        applicationId = "com.kkl1n.read"
+        minSdk = 24
+        targetSdk = 36
+        versionCode = 1
+        versionName = "0.0.1"
+    }
+
+    buildTypes {
+        release {
+            isMinifyEnabled = false
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+        isCoreLibraryDesugaringEnabled = true
+    }
+
+    kotlinOptions {
+        jvmTarget = "17"
+    }
+
+    buildFeatures {
+        compose = true
+    }
+
+    testOptions {
+        unitTests.all {
+            // Run tests in the Gradle process instead of forking a worker JVM.
+            // Forked test workers fail to launch in sandboxed shells that cannot
+            // create piped stdio; these are pure JVM logic tests, so isolation
+            // buys nothing.
+            it.setForkEvery(0)
+        }
+    }
+
+    packaging {
+        resources {
+            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        }
+    }
+}
+
+dependencies {
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.activity.compose)
+
+    implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.ui)
+    implementation(libs.androidx.ui.graphics)
+    implementation(libs.androidx.ui.tooling.preview)
+    implementation(libs.androidx.material3)
+    implementation(libs.androidx.material.icons.extended)
+    implementation(libs.androidx.navigation.compose)
+    debugImplementation(libs.androidx.ui.tooling)
+
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    ksp(libs.androidx.room.compiler)
+
+    implementation(libs.androidx.datastore.preferences)
+    implementation(libs.androidx.documentfile)
+
+    // Avatar image loading.
+    implementation(libs.coil.compose)
+
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.3")
+
+    testImplementation(libs.junit)
+}
+
+/**
+ * Copies the built APK into the project root as KKL1nRead.apk.
+ *
+ * The default output path is buried several folders deep, which makes the
+ * installable file awkward to find. Dropping a copy next to the project keeps a
+ * usable build one click away after every assemble.
+ *
+ * Implemented as a doLast copy rather than a Copy task: the Copy task tries to
+ * snapshot and hash its inputs, and hashing a file that Gradle has just written
+ * inside the same task graph fails.
+ */
+tasks.register("exportApk") {
+    dependsOn("assembleDebug")
+    doLast {
+        val built = layout.buildDirectory.file("outputs/apk/debug/app-debug.apk").get().asFile
+        if (!built.exists()) {
+            throw GradleException("APK not found at ${built.absolutePath}")
+        }
+        val target = rootProject.layout.projectDirectory.file("KKL1nRead.apk").asFile
+        built.copyTo(target, overwrite = true)
+        println("APK exported to ${target.absolutePath} (${target.length() / 1024 / 1024} MB)")
+    }
+}
+

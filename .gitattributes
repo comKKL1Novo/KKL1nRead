@@ -1,0 +1,16 @@
+# Normalise line endings in the repository, so a Windows checkout and a
+# Linux/macOS checkout produce identical diffs.
+* text=auto eol=lf
+
+# Gradle wrapper scripts must stay executable on Unix.
+gradlew text eol=lf
+*.bat text eol=crlf
+
+# Binary assets: never touch these.
+*.png binary
+*.jpg binary
+*.jar binary
+*.apk binary
+*.aab binary
+*.keystore binary
+*.jks binary

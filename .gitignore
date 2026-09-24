@@ -1,0 +1,23 @@
+*.iml
+.gradle
+/local.properties
+local.properties
+/.idea
+.DS_Store
+/build
+/app/build
+/captures
+.externalNativeBuild
+.cxx
+.kotlin
+
+# Build output exported to the project root by the `exportApk` Gradle task.
+*.apk
+*.aab
+*.ap_
+*.dex
+
+# Signing material must never be committed.
+*.jks
+*.keystore
+keystore.properties
