@@ -29,9 +29,11 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      # 缓存 Gradle 依赖与 wrapper，显著加快后续构建
+      # 缓存 Gradle 依赖与 wrapper，显著加快后续构建。
+      # action 的归属是 gradle/actions，不是 actions/ —— 写错会直接报
+      # "Unable to resolve action actions/setup-gradle, repository not found"。
       - name: 配置 Gradle 缓存
-        uses: actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v4
 
       # 两处本地属性必须在这里现生成，因为它们都不入库：
       #
@@ -77,6 +79,25 @@ jobs:
       # 本机可以改用 tools/run-tests.ps1 绕过。
       - name: 运行单元测试
         run: ./gradlew testDebugUnitTest --no-daemon
+
+      # 防止「测试静默没跑却显示成功」：核对 XML 报告里的实际用例数。
+      # 目前应有 35 个（ChapterSplitterTest 18 + TextDecoderTest 17）。
+      # 如果哪天测试类没被收集到，这里会失败而不是假装通过。
+      - name: 核对测试确实执行了
+        run: |
+          RESULTS=app/build/test-results/testDebugUnitTest
+          if [ ! -d "$RESULTS" ]; then
+            echo "::error::没有测试结果目录，测试可能根本没跑"
+            exit 1
+          fi
+
+          TOTAL=$(grep -ho 'tests="[0-9]*"' "$RESULTS"/*.xml | grep -o '[0-9]*' | awk '{s+=$1} END {print s+0}')
+          echo "执行的用例数：$TOTAL"
+
+          if [ "$TOTAL" -lt 30 ]; then
+            echo "::error::用例数只有 $TOTAL，预期至少 30。测试可能没有被收集。"
+            exit 1
+          fi
 
       # 测试报告即使失败也要上传，否则失败时看不到是哪个用例挂了
       - name: 上传测试报告
