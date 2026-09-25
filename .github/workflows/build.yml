@@ -24,10 +24,10 @@ jobs:
 
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: 配置 JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: '17'
@@ -35,8 +35,13 @@ jobs:
       # 缓存 Gradle 依赖与 wrapper，显著加快后续构建。
       # action 的归属是 gradle/actions，不是 actions/ —— 写错会直接报
       # "Unable to resolve action actions/setup-gradle, repository not found"。
+      #
+      # 刻意停在 v5，不升 v6：v6 把缓存拆成了闭源商业组件（gradle-actions-caching，
+      # 适用 gradle.com 单独的 Terms of Use），且默认就启用它。本工程是 MIT 开源项目，
+      # 不引入这类许可。v6 的 cache-provider: basic 虽然仍是开源实现，但功能是简版，
+      # 所以留在 v5 更划算。v5 已升到 Node 24，弃用警告已经消除。
       - name: 配置 Gradle 缓存
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v5
 
       # 两处本地属性必须在这里现生成，因为它们都不入库：
       #
@@ -107,14 +112,14 @@ jobs:
       # 测试报告即使失败也要上传，否则失败时看不到是哪个用例挂了
       - name: 上传测试报告
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-report
           path: app/build/reports/tests/testDebugUnitTest/
           if-no-files-found: ignore
 
       - name: 上传 APK
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: app-debug
           path: app/build/outputs/apk/debug/*.apk
