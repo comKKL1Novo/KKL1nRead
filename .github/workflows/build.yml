@@ -1,8 +1,11 @@
 name: Build
 
-# 这个工程目前没有任何单元测试，所以 CI 至少守住一条底线：
-# 提交的代码必须能编译通过、能打出 APK。
-# 这样就不会出现「推上去才发现编译不过」的情况。
+# CI 守住两条底线：
+#
+#   1. 提交的代码必须能编译通过、能打出 APK —— 不会出现「推上去才发现编译不过」
+#   2. 现有的 35 个单元测试必须真的跑起来并通过 —— 不会出现「测试静默没跑却显示成功」
+#
+# 见下面「运行单元测试」与「核对测试确实执行了」两步。
 
 on:
   push:
@@ -82,7 +85,8 @@ jobs:
 
       # 防止「测试静默没跑却显示成功」：核对 XML 报告里的实际用例数。
       # 目前应有 35 个（ChapterSplitterTest 18 + TextDecoderTest 17）。
-      # 如果哪天测试类没被收集到，这里会失败而不是假装通过。
+      # 要求精确等于 35 而不是「至少 30」：后者在整整丢掉一个测试类时仍会通过，
+      # 而那正是这一步要拦的情况。新增测试时同步改这里的 EXPECTED。
       - name: 核对测试确实执行了
         run: |
           RESULTS=app/build/test-results/testDebugUnitTest
@@ -91,11 +95,12 @@ jobs:
             exit 1
           fi
 
+          EXPECTED=35
           TOTAL=$(grep -ho 'tests="[0-9]*"' "$RESULTS"/*.xml | grep -o '[0-9]*' | awk '{s+=$1} END {print s+0}')
-          echo "执行的用例数：$TOTAL"
+          echo "执行的用例数：$TOTAL（预期 $EXPECTED）"
 
-          if [ "$TOTAL" -lt 30 ]; then
-            echo "::error::用例数只有 $TOTAL，预期至少 30。测试可能没有被收集。"
+          if [ "$TOTAL" -ne "$EXPECTED" ]; then
+            echo "::error::用例数为 $TOTAL，预期 $EXPECTED。可能有测试没被收集，或新增测试后忘了更新 EXPECTED。"
             exit 1
           fi
 
